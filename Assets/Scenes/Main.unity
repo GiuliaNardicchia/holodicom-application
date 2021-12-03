@@ -2233,7 +2233,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be4539b6aaf854543ab1749cb9a6013e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dicomFolderName: actrev
   sliderAxial: {fileID: 699300776}
   sliderCoronal: {fileID: 639078411}
   sliderSagittal: {fileID: 1146349266}

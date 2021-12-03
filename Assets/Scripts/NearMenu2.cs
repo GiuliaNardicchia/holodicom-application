@@ -19,6 +19,7 @@ public class NearMenu2 : MonoBehaviour
 
     private List<string> models;
     private string model;
+    private string modelSelected;
 
     private Dictionary<string, int> modelDictionary = new Dictionary<string, int>();
 
@@ -39,7 +40,8 @@ public class NearMenu2 : MonoBehaviour
             interactable.OnClick.AddListener(() => {
 
                 int value;
-                bool hasValue = modelDictionary.TryGetValue(interactable.gameObject.name, out value);
+                this.modelSelected = interactable.gameObject.name;
+                bool hasValue = modelDictionary.TryGetValue(this.modelSelected, out value);
                 if (hasValue)
                 {
                     this.serverGateway2.SetId(value);
@@ -86,11 +88,12 @@ public class NearMenu2 : MonoBehaviour
 
     public IEnumerator SetModel()
     {
+        this.serverGateway2.ResetModel();
         yield return new WaitUntil(() => !(String.IsNullOrEmpty(this.serverGateway2.GetModel())));
         this.model = this.serverGateway2.GetModel();
 
         DicomViewerObjImporter newDicomViewerObjImporter = Instantiate(dicomViewerObjImporter);
-        newDicomViewerObjImporter.SetModel(this.model);
+        newDicomViewerObjImporter.SetModel(this.model, this.modelSelected.Replace(".obj", ""));
         newDicomViewerObjImporter.gameObject.SetActive(true);
     }
 }

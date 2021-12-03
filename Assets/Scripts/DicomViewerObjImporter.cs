@@ -11,8 +11,6 @@ using Dummiesman;
 
 public class DicomViewerObjImporter : MonoBehaviour
 {
-
-    public string dicomFolderName;
     public SliceSlider sliderAxial;
     public SliceSlider sliderCoronal;
     public SliceSlider sliderSagittal;
@@ -70,7 +68,7 @@ public class DicomViewerObjImporter : MonoBehaviour
         return (mainOrientation, planeOrientations);
     }
 
-    public async void SetModel(string model) //Start()
+    public async void SetModel(string model, string dicomFolderName)
     {
         var textStream = new MemoryStream(Encoding.UTF8.GetBytes(model.ToString()));
         var loadedObj = new OBJLoader().Load(textStream);

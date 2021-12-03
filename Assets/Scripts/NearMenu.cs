@@ -45,7 +45,8 @@ public class NearMenu : MonoBehaviour
                             if (m != null)
                             {
                                 DicomViewerObjImporter newDicomViewerObjImporter = Instantiate(dicomViewerObjImporter);
-                                newDicomViewerObjImporter.SetModel(m);
+                                string dicomFolderName = "ACTright";
+                                newDicomViewerObjImporter.SetModel(m, dicomFolderName);
                                 newDicomViewerObjImporter.gameObject.SetActive(true);
                             }
                         }));

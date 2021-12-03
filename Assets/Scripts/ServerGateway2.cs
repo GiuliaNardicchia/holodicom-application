@@ -74,6 +74,11 @@ public class ServerGateway2 : MonoBehaviour
         ws.Send(ID + id.ToString());
     }
 
+    public void ResetModel()
+    {
+        this.model = null;
+    }
+
     public List<string> GetListModel()
     {
         return this.modelNames;
