@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -7,6 +8,7 @@ using UnityEngine.EventSystems;
 using TMPro;
 using Microsoft.MixedReality.Toolkit.Utilities;
 using Microsoft.MixedReality.Toolkit.UI;
+using System.Threading.Tasks;
 
 public class NearMenu : MonoBehaviour
 {
@@ -15,70 +17,83 @@ public class NearMenu : MonoBehaviour
     public ServerGateway serverGateway;
     public DicomViewerObjImporter dicomViewerObjImporter;
 
+    private List<string> models;
+    private string model;
+    private string modelSelected;
+
     private Dictionary<string, int> modelDictionary = new Dictionary<string, int>();
 
-    async void Start()
+    private void Awake()
     {
-
-        StartCoroutine(this.serverGateway.GetModels(6, (models) =>
-        {
-            /*this.elementsNumber = models.Length;
-            buttonCollection.transform.Height = 0.32f * (elementsNumber + 1);
-            buttonCollection.transform.Widht = 0.32f * (elementsNumber + 1);*/
-
-            this.CreateButtons(models);
-
-            var allInteractables = GameObject.FindObjectsOfType<Interactable>();
-            foreach (var iteractable in allInteractables)
-            {
-
-                iteractable.OnClick.AddListener(() =>
-                {
-                    int value;
-                    bool hasValue = modelDictionary.TryGetValue(iteractable.gameObject.name, out value);
-                    if (hasValue)
-                    {
-                        Debug.Log(Time.time + ": " + iteractable.gameObject.name + " was clicked " + "id: " + value);
-
-                        StartCoroutine(this.serverGateway.GetModelSelected(value, (m) =>
-                        {
-                            if (m != null)
-                            {
-                                DicomViewerObjImporter newDicomViewerObjImporter = Instantiate(dicomViewerObjImporter);
-                                string dicomFolderName = "ACTright";
-                                newDicomViewerObjImporter.SetModel(m, dicomFolderName);
-                                newDicomViewerObjImporter.gameObject.SetActive(true);
-                            }
-                        }));
-                    }
-                    else
-                    {
-                        Debug.Log("Key not present");
-                    }
-                });
-            }
-
-        }));
+        this.serverGateway.Init();
+        this.serverGateway.SetLimit(6);
     }
 
-    void Update()
+    private void Start()
+    {
+        StartCoroutine(this.GetListModel());
+        this.CreateButtons(this.models);
+
+        var allInteractables = GameObject.FindObjectsOfType<Interactable>();
+        foreach (var interactable in allInteractables)
+        {
+            interactable.OnClick.AddListener(() => {
+
+                int value;
+                this.modelSelected = interactable.gameObject.name;
+                bool hasValue = modelDictionary.TryGetValue(this.modelSelected, out value);
+                if (hasValue)
+                {
+                    this.serverGateway.SetId(value);
+                    StartCoroutine(SetModel());
+                    //Debug.Log(Time.time + ": " + interactable.gameObject.name + " was clicked " + "id: " + value);
+                }
+                else
+                {
+                    Debug.Log("Key not present");
+                }
+            });
+        }
+    }
+
+    private void Update()
     {
         GridObjectCollection gridObjectCollection = buttonCollection.GetComponent<GridObjectCollection>();
         gridObjectCollection.UpdateCollection();
     }
 
-    private void CreateButtons(string[] models)
+    private void CreateButtons(List<string> models)
     {
-        for (int i = 0; i < models.Length; i++)
+        var modelsArray = models.ToArray();
+
+        for (int i = 0; i < modelsArray.Length; i++)
         {
             GameObject button = Instantiate(buttonPrefab);
             button.transform.SetParent(buttonCollection.transform);
-            string buttonName = models[i].Trim('"');
+            string buttonName = modelsArray[i].Trim('"');
             button.name = buttonName;
-            button.GetComponentInChildren<TMP_Text>().text = buttonName; //TMP_Text comprende TextPro e TextProUGUI nel nuovo aggiornamento
+            button.GetComponentInChildren<TMP_Text>().text = buttonName;
+            //TMP_Text comprende TextPro e TextProUGUI nel nuovo aggiornamento
             button.SetActive(true);
 
             modelDictionary.Add(buttonName, i);
         }
+    }
+
+    public IEnumerator GetListModel()
+    {
+        this.models = this.serverGateway.GetListModel();
+        yield return new WaitUntil(() => (!this.serverGateway.GetListModel().Equals(null)));
+    }
+
+    public IEnumerator SetModel()
+    {
+        this.serverGateway.ResetModel();
+        yield return new WaitUntil(() => !(String.IsNullOrEmpty(this.serverGateway.GetModel())));
+        this.model = this.serverGateway.GetModel();
+
+        DicomViewerObjImporter newDicomViewerObjImporter = Instantiate(dicomViewerObjImporter);
+        newDicomViewerObjImporter.SetModel(this.model, this.modelSelected.Replace(".obj", ""));
+        newDicomViewerObjImporter.gameObject.SetActive(true);
     }
 }

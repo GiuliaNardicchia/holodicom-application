@@ -1,70 +1,91 @@
 using System;
+using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
 using System.Threading.Tasks;
+using System.Net.Sockets;
+using WebSocketSharp;
 
 public class ServerGateway : MonoBehaviour
 {
-    /*void Start()
-    {
-        string uri = "http://192.168.40.100:8080/";
-        UnityEngine.WSA.Launcher.LaunchUri(uri, false);
-    }*/
+    private const string LIMIT = "l:";
+    private const string ID = "i:";
 
-    private string address = "http://localhost:8000/";
+    private const string url = "ws://localhost:8080"; //ws://192.168.40.100:8080
+    private WebSocket ws;
 
-    private string[] ProcessServerResponse(string response)
+    private List<string> modelNames;
+    private List<string> dicom;
+    private string model;
+    private bool selected;
+    //private bool first;
+
+    public void Init()
     {
-        response = response.TrimStart('[').TrimEnd(']');
-        string[] models = response.Split(',');
-        return models;
-        //process the file json
-        //import SimpleJSON.cs -> parser of a JSON object
+        this.modelNames = new List<string>();
+        this.dicom = new List<string>();
+        this.model = null;
+        this.selected = false;
+        //this.first = false;
+
+        ws = new WebSocket(url);
+        ws.OnOpen += (sender, e) => Debug.Log("Socket connected!");
+        ws.OnError += (sender, e) => Debug.Log("Error: " + e.Message);
+        ws.OnClose += (sender, e) => Debug.Log("Socket connection closed " + e.Code + " " + e.Reason);
+        ws.OnMessage += OnMessage;
+        ws.Connect();
     }
 
-    public IEnumerator GetModels(int limit, Action<string[]> callback)
+    private void OnMessage(object sender, MessageEventArgs e)
     {
-        yield return StartCoroutine(GetListModel(this.address, limit, callback));
-    }
-
-    IEnumerator GetListModel(string address, int limit, Action<string[]> callback)
-    {
-        UnityWebRequest www = UnityWebRequest.Get(this.address + "model?limit=" + limit);
-        yield return www.SendWebRequest();
-
-        if (www.result != UnityWebRequest.Result.Success)
+        //Debug.Log("Message Received from " + ((WebSocket)sender).Url);
+        if (!this.selected)
         {
-            Debug.LogError("Something went wrong: " + www.error);
+            this.modelNames.Add(e.Data);
         }
         else
         {
-            callback(ProcessServerResponse(www.downloadHandler.text));
+            this.model = e.Data;
+
+            //per caricare anche i file dicom, ma si blocca
+            /*if (!this.first)
+            {
+                this.model = e.Data;
+                this.first = this.first;
+            }
+            else
+            {
+                this.dicom.Add(e.Data);
+            }*/
+
         }
     }
 
-    public IEnumerator GetModelSelected(int id, Action<string> callback)
+    public void SetLimit(int limit)
     {
-        yield return StartCoroutine(GetModelById(this.address, id.ToString(), callback));
+        this.selected = false;
+        ws.Send(LIMIT + limit.ToString());
     }
 
-    IEnumerator GetModelById(string address, string id, Action<string> callback)
+    public void SetId(int id)
     {
-        UnityWebRequest www = UnityWebRequest.Get(address + "model?id=" + id);
+        this.selected = true;
+        ws.Send(ID + id.ToString());
+    }
 
-        yield return www.SendWebRequest();
+    public void ResetModel()
+    {
+        this.model = null;
+    }
 
-        if (www.result != UnityWebRequest.Result.Success)
-        {
-            Debug.LogError("Something went wrong: " + www.error);
-            if (callback != null)
-                callback(www.error);
-        }
-        else
-        {
-            if (callback != null)
-                callback(www.downloadHandler.text);
-        }
+    public List<string> GetListModel()
+    {
+        return this.modelNames;
+    }
+
+    public string GetModel()
+    {
+        return this.model;
     }
 }
